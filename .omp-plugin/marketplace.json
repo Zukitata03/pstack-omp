@@ -4,7 +4,7 @@
     "name": "zukitata03"
   },
   "metadata": {
-    "description": "pstack workflows adapted native to oh-my-pi (OMP). No benny, no cloud agents; models resolve through OMP modelRoles."
+    "description": "pstack workflows adapted native to oh-my-pi (OMP). No benny automation pack; models resolve through OMP modelRoles."
   },
   "plugins": [
     {
