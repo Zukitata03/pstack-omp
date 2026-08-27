@@ -7,6 +7,12 @@ config="${OMP_CONFIG:-$HOME/.omp/agent/config.yml}"
 
 command -v python3 >/dev/null || { echo "python3 required"; exit 1; }
 
+# CI runners have no OMP install; there is nothing to validate against.
+if [ ! -f "$config" ]; then
+  echo "skip: no config at $config (CI or fresh machine); preset not validated"
+  exit 0
+fi
+
 python3 - "$repo/presets/omp-native.json" "$config" <<'EOF'
 import json, re, sys
 
