@@ -38,9 +38,9 @@ One `tasks[]` batch with three items, `agent: "task"`, an explicit model role on
 
 | Lens | `model` | Prompt template |
 |---|---|---|
-| Judgment | your configured reflect-judgment model (default `claude-fable-5-thinking-max`) | `references/judgment-reviewer.md` |
-| Tooling | your configured reflect-tooling model (default `gpt-5.6-sol-max`) | `references/tooling-reviewer.md` |
-| Divergent | your configured reflect-judgment model (default `claude-fable-5-thinking-max`) | `references/divergent-reviewer.md` |
+| Judgment | your configured reflect-judgment model (default `slow` role) | `references/judgment-reviewer.md` |
+| Tooling | the `default` role, or your configured reflect-tooling seat | `references/tooling-reviewer.md` |
+| Divergent | your configured reflect-judgment model (default `slow` role) | `references/divergent-reviewer.md` |
 
 Pass each template verbatim, substituting the transcript path or digest where marked. Reviewers return findings in the `Task` response body.
 

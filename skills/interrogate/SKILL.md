@@ -37,10 +37,10 @@ Launch all reviewers in a single `tasks[]` batch. Use the `interrogate reviewers
 
 | Subagent | Default model |
 |----------|---------------|
-| Reviewer A | `claude-fable-5-thinking-max` |
-| Reviewer B | `gpt-5.6-sol-max` |
-| Reviewer C | `grok-4.6-fast-xhigh` |
-| Reviewer D | `claude-opus-5-thinking-xhigh` |
+| Reviewer A | `slow` role |
+| Reviewer B | `slow` role |
+| Reviewer C | `slow` role |
+| Reviewer D | `advisor` role |
 
 For each reviewer:
 - `agent`: `scout` (read-only)
