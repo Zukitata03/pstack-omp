@@ -1,33 +1,36 @@
-# pstack
+# pstack-omp
 
-i'm [poteto](https://x.com/poteto). i'm not a president or ceo, but i've worked with millions of lines of code at Meta, Netflix, and Cursor. i'm also on the react core team where i help build and maintain react compiler.
+**pstack-omp** is a personal, OMP-native build of **[pstack](https://github.com/cursor/plugins/tree/main/pstack)** by [Lauren Tan](https://x.com/poteto) (the "vanilla" pstack, part of [cursor/plugins](https://github.com/cursor/plugins)).
 
-there's a growing sense that ai writes too much slop code. i agree. i don't want to ship like a team of twenty slop artists. throughput without quality is not a goal i aspire to. if you want to go fast, go deep first. 
+**All credit for pstack goes to Lauren Tan and cursor/plugins.** The skills, playbooks, principles, and agents here are her work, imported and adapted. This repo is not affiliated with Cursor or the original author.
 
-**pstack is my answer.** these are the same skills i use everyday to ship high quality code at Cursor. this turns cursor into a real engineering team. the goal is not to maximize loc, in fact it's the opposite. pstack helps you write less, but higher quality code.
+**Purpose of this repo.** Just for myself. I use oh-my-pi (OMP) as my coding agent, and I wanted pstack's rigor without fighting its Cursor-specific assumptions. This fork adapts pstack to run natively on OMP, removes the parts I don't use, and auto-tracks upstream so I never manually sync.
 
-**pstack gives you fearless parallelism.** when you can go deep on one agent and trust it to write good, verifiable code, you can truly parallelize with confidence. start multiple agents up with `poteto-mode` and trust that they'll apply rigorous engineering principles to their work.
+**What changed vs vanilla pstack.**
 
-**cursor gives you the best of all worlds.** every frontier model has its strengths and weaknesses. use any model with pstack. in fact, many of my skills use multi-model workflows to take advantage of each model's unique strengths.
-
-fork it. improve it. make it yours. PRs are welcome! 
+- Models. No model slugs anywhere. Every pstack "seat" names an OMP role (`default`, `smol`, `slow`, `plan`, `advisor`), resolved through `~/.omp/agent/config.yml` `modelRoles`. See `presets/omp-native.json`.
+- Tools. Cursor/Claude tool names mapped to OMP equivalents in [`skills/poteto-mode/references/omp-tools.md`](./skills/poteto-mode/references/omp-tools.md) (`task` batches, `hub`, `ask`, `read skill://`).
+- benny. The dormant `automations/benny/` pack is removed. I don't need it.
+- Cloud agents. All cloud-agent machinery is rewritten to OMP-local background task subagents and `hub`-managed loops.
+- Auto-update. A GitHub Action re-imports vanilla pstack from upstream on Mon/Wed/Fri, reapplies every adaptation, and pushes. See [Updates](#updates).
 
 ## install
 
 ```bash
-/add-plugin pstack
+omp plugin marketplace add Zukitata03/pstack-omp
+omp plugin install pstack-omp@pstack-omp
 ```
+
+The plugin ships as `.omp-plugin/` and is also Claude-compatible in shape.
 
 ## get started
 
 two steps:
 
-1. run [`/setup-pstack`](./skills/setup-pstack/SKILL.md) and choose which models you want.
+1. run [`/setup-pstack`](./skills/setup-pstack/SKILL.md) to check your seat-to-role mapping against your `modelRoles`.
 2. use [`/poteto-mode`](./skills/poteto-mode/SKILL.md) whenever you're doing anything that requires rigor.
 
-new here? the [pstack guide](./docs/guide/README.md) walks you through a first real task, from setup and prompting through verification and overnight runs.
-
-that's it. the other skills are situational; the mode skill uses them for you as needed. out of the box the mode splits work by model strength: precisely-specified code goes to sol, fast mechanical code goes to grok, and prose and judgment go to fable. the default panel is fable / sol / grok / opus 5. [`/setup-pstack`](./skills/setup-pstack/SKILL.md) changes any of it.
+new here? the [pstack guide](./docs/guide/README.md) walks you through a first real task, from setup and prompting through verification and overnight runs. It is the vanilla guide; only the platform-specific parts have been adapted.
 
 ## usage
 
@@ -35,7 +38,7 @@ use [`/poteto-mode`](./skills/poteto-mode/SKILL.md) at the start of a task. it r
 
 ### just use [`/poteto-mode`](./skills/poteto-mode/SKILL.md)
 
-this skill is the main shortcut. i use it whenever i need the agent to do rigorous engineering work. it comes with twenty-two playbooks:
+this skill is the main shortcut. it comes with twenty-two playbooks:
 
 ```
 /poteto-mode this pr has a subtle bug where the scroll drifts every 750ms even when idle. repro
@@ -77,8 +80,6 @@ morning.
 
 </details>
 
-
-
 when invoked it:
 
 1. opens a todo list. the first item is reading the inline principles index in the skill.
@@ -119,8 +120,7 @@ the full rules and playbooks live in [`skills/poteto-mode/SKILL.md`](./skills/po
 | [`/swarm`](./skills/swarm/SKILL.md) | you want N parallel workers across different slices or races, then one aggregated report. |
 | [`/interrogate`](./skills/interrogate/SKILL.md) | you have a diff and want several different models to try to break it, including a strict code-quality lens. |
 | [`/automate-me`](./skills/automate-me/SKILL.md) | you want your own `-mode` skill, drafted from how you've actually worked. |
-| [`/make-bot-ui`](./skills/grokbot/make-bot-ui/SKILL.md) | you want a page or dashboard whose buttons wake a Grok Bot over a webhook, including the sender-key handoff and Tailscale. |
-| [`/setup-pstack`](./skills/setup-pstack/SKILL.md) | you want to pick which models pstack uses per role. detects your models and writes a config rule. |
+| [`/setup-pstack`](./skills/setup-pstack/SKILL.md) | you want to check which OMP roles each pstack seat uses. validates against `~/.omp/agent/config.yml` `modelRoles`. |
 | [`/reflect`](./skills/reflect/SKILL.md) | a long task landed and you want the recipe captured as a skill edit. |
 | [`/teach`](./skills/teach/SKILL.md) | you want to actually understand a change or subsystem, not just have it summarized. runs how + why and weaves one plain explanation, built up diagram by diagram. |
 | [`/tdd`](./skills/tdd/SKILL.md) | you're fixing a bug and there's a cheap local test path. write the failing test first, then the fix. |
@@ -136,12 +136,9 @@ the full rules and playbooks live in [`skills/poteto-mode/SKILL.md`](./skills/po
 
 </details>
 
-
-
 ### examples
 
 mostly i type [`/poteto-mode`](./skills/poteto-mode/SKILL.md) at the start of a task and let it route to a playbook. the other skills fire as the steps need them. a few i reach for directly.
-
 
 <details>
 <summary>all the examples</summary>
@@ -185,7 +182,7 @@ automate-me:       /automate-me
 
 ## the `poteto-agent` and Comment Sicko subagents
 
-pstack also ships a subagent that runs my style end to end. spawn it from a parent agent via [`agent: "poteto-agent"`](./agents/poteto-agent.md). it reads `poteto-mode` in full, including its inline principles index, before doing any work. substituting `generalPurpose` skips that read and drifts.
+pstack ships a subagent that runs poteto's style end to end. spawn it from a parent agent via [`agent: "poteto-agent"`](./agents/poteto-agent.md). it reads `poteto-mode` in full, including its inline principles index, before doing any work. substituting a generic agent skips that read and drifts.
 
 [`/poteto-mode`](./skills/poteto-mode/SKILL.md) and [`agent: "poteto-agent"`](./agents/poteto-agent.md) route through the same wrapper.
 
@@ -226,26 +223,50 @@ twenty-one short skills, one principle each. `poteto-mode` indexes them inline a
 
 ## not shipped here
 
-a few things `poteto-mode` references but doesn't bundle:
+a few things the vanilla `poteto-mode` references but doesn't bundle:
 
 - `/deslop` and the `deslop` skill ship in the `cursor-team-kit` plugin.
 - `control-cli` (for CLIs and TUIs) and `control-ui` (for browser, Electron, web) ship in `cursor-team-kit` too.
-- `/create-skill` is a cursor built-in. cursor also ships a built-in `/babysit`; inside `poteto-mode`, the [babysit playbook](./skills/poteto-mode/playbooks/babysit.md) supersedes it for pr-status requests.
+- `/create-skill` is a cursor built-in.
 
-install `cursor-team-kit` alongside pstack if you want the full set.
+On OMP these resolve differently. In this fork they are mapped to OMP surfaces in [`skills/poteto-mode/references/omp-tools.md`](./skills/poteto-mode/references/omp-tools.md): the browser tool drives web UIs, the real binary drives CLIs, and the harness's `skill-creator` covers skill authoring. If a skill still names a cursor-team-kit surface you don't have, the omp-tools mapping names the OMP replacement.
 
 ## why are there no planning skills?
 
-cursor already has a great plan mode which works great with pstack. but personally, i don't believe in planning. the best spec is code. if you do want to make a plan, [`/poteto-mode`](./skills/poteto-mode/SKILL.md) covers it, but it's not a default. 
+cursor has a great plan mode which works great with pstack. personally, poteto doesn't believe in planning. the best spec is code. if you do want to make a plan, [`/poteto-mode`](./skills/poteto-mode/SKILL.md) covers it, but it's not a default. In OMP the `plan` model role covers architectural planning; pstack-omp keeps the vanilla stance.
+
+## updates
+
+**This repo auto-tracks vanilla pstack.** A GitHub Action (`.github/workflows/auto-update.yml`) runs `scripts/update.sh` on Mon/Wed/Fri at 03:20 UTC. It:
+
+1. fetches upstream `cursor/plugins` and imports the `pstack/` subtree,
+2. drops benny,
+3. reapplies every OMP adaptation from `scripts/adapt-sweep.py`,
+4. validates the preset against the live `modelRoles` (skipped in CI where no OMP config exists),
+5. commits and pushes any change.
+
+Manually at any time:
+
+```bash
+bash scripts/update.sh
+```
+
+Then pull the new plugin into OMP:
+
+```bash
+omp plugin marketplace update pstack-omp
+```
+
+Upstream text that drifts from the known adaptation patterns fails the sweep with a `MANUAL REVIEW` list instead of silently passing through, so a changed upstream never ships unadapted.
 
 ## make it yours
 
-`poteto-mode` is my style. you may not want exactly that.
+`poteto-mode` is poteto's style. you may not want exactly that.
 
 type [`/automate-me`](./skills/automate-me/SKILL.md). it mines your recent transcripts, drafts a `<your-name>-mode` skill from how you've actually worked, and routes through pstack underneath. you keep pstack as the base and end up with your own routing skill alongside `poteto-mode`.
 
-models are configurable too. type [`/setup-pstack`](./skills/setup-pstack/SKILL.md). it detects the models you have access to and writes a small always-applied rule mapping each role (code, judgment, the review panels) to a model. every skill reads it and falls back to sensible defaults when the rule is absent, so you override only what you want.
+seats are configurable too. type [`/setup-pstack`](./skills/setup-pstack/SKILL.md). it validates every pstack seat against `~/.omp/agent/config.yml` `modelRoles`. change a model there once and every skill follows.
 
 ## license
 
-MIT
+MIT. The skills, playbooks, principles, and agents are the work of Lauren Tan and cursor/plugins, used under their MIT license. This adaptation is derived work.
