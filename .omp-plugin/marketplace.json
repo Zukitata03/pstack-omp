@@ -10,7 +10,8 @@
     {
       "name": "pstack-omp",
       "description": "OMP-native pstack. Rigorous agent workflows parallelized with confidence.",
-      "source": "./"
+      "source": "./",
+      "version": "0.14.4-omp1"
     }
   ]
 }
