@@ -16,11 +16,8 @@ import subprocess, sys, pathlib, re, shutil, json
 
 repo, tmp, ref = sys.argv[1], sys.argv[2], sys.argv[3]
 
-def git(*a, cwd=repo):
-    return subprocess.run(["git", *a], cwd=cwd, check=True, capture_output=True, text=True).stdout
-
-# 1. Snapshot upstream pstack/ into tmp/new
-git("archive", ref, "pstack", cwd=repo)  # validates path exists
+# 1. Validate ref has the pstack subtree, then snapshot it (binary-safe: no text capture)
+subprocess.run(["git", "cat-file", "-e", f"{ref}:pstack"], cwd=repo, check=True)
 subprocess.run(f"git archive {ref} pstack | tar -x -C {tmp}", cwd=repo, shell=True, check=True)
 src = pathlib.Path(tmp, "pstack")
 
