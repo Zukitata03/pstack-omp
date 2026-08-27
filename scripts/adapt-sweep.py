@@ -89,6 +89,15 @@ SUBS = [
     (r"architect runners: claude-fable-5-thinking-max, gpt-5\.6-sol-max, grok-4\.6-fast-xhigh, claude-opus-5-thinking-xhigh", "architect runners: slow, slow, advisor, smol"),
     (r"interrogate reviewers: claude-fable-5-thinking-max, gpt-5\.6-sol-max, grok-4\.6-fast-xhigh, claude-opus-5-thinking-xhigh", "interrogate reviewers: slow, slow, advisor, smol"),
     (r"arena cross-judge pool: claude-fable-5-thinking-max, gpt-5\.6-sol-max, grok-4\.6-fast-xhigh, claude-opus-5-thinking-xhigh", "arena cross-judge pool: advisor, smol"),
+
+    (r"Spawn all N subagents in one message with `run_in_background: true`, each with the task, the path to the shared grounding, its own output path, and instructions to produce both the artifact and a short rationale\.",
+     "Spawn all N subagents in one `tasks[]` batch, each with the task, the path to the shared grounding, its own output path, and instructions to produce both the artifact and a short rationale."),
+    (r"\*\*Defaults for every `Task` call\.\*\* `run_in_background: true`, agent mode \(readonly strips MCP\), file pointers not inlined context, explicit model per role \(configurable via `/setup-pstack`; defaults [^)]*\)\. Code delegates tier by difficulty\. The hardest changes \(cross-cutting design, gnarly concurrency, subtle algorithms\) go to your strongest judgment model \([^)]*\) when the task needs judgment or the intent is vague, and to your strongest instruction-following model \([^)]*\) when the work is a precisely specified sequence of steps to execute to the letter; trivial mechanical edits go to your fast code model\.",
+     "**Defaults for every task batch item.** Jobs run in background automatically, full tool access (never strip MCP from a reviewer), file pointers not inlined context, explicit model role per seat per `references/omp-tools.md`. Code delegates tier by difficulty. The hardest changes get the `slow` role when the task needs judgment or the intent is vague; a precisely specified sequence of steps gets the `default` role; trivial mechanical edits go to `smol`."),
+    (r"Routed workflow skills \(`how`, `why`, `interrogate`, `reflect`, `swarm`\) set their own `subagent_type` for diverse-model review", "Routed workflow skills (`how`, `why`, `interrogate`, `reflect`, `swarm`) set their own `agent` for diverse-model review"),
+    (r"`inbox/` holds completion pointers\. `gates\.md` parks human gates \(question, options, default on no answer\) so a completion flood cannot wipe AskQuestion state\.",
+     "`inbox/` holds completion pointers. `gates.md` parks human gates (question, options, default on no answer) so a completion flood cannot wipe ask state."),
+    (r"Prefer AskQuestion over free text\.", "Prefer `ask` over free text."),
     (r"`~/.cursor/rules/pstack-models\.mdc`", "the user's pstack model config"),
 
     # cursor built-ins -> harness built-ins
@@ -148,10 +157,12 @@ for f in map(pathlib.Path, glob.glob(str(REPO / "skills" / "**" / "*.md"), recur
         if re.search(
             r"subagent_type:|AskUserQuestion|AskQuestion|run_in_background|"
             r"cloud agent|cloud-sleeper|environment: \"cloud\"|cloud_base_branch|"
-            r"\b(?:claude|grok|gpt|gemini|opus|sonnet|haiku|fable)-[a-z0-9.-]+\b|"
-            r"gpt-[0-9]|claude-opus|claude-sonnet|claude-haiku|claude-fable|grok-[0-9]",
+            r"\b(?:claude|grok|gpt-|gemini-|opus|sonnet|haiku|fable)-[a-z0-9.-]+\b|"
+            r"gpt-[0-9]|claude-[a-z0-9.-]+|"
+            r"Cursor's (?:built-in|[^\w]/?[a-z-]*/?|\x60/)|cursor's \x60/loop\x60|"
+            r"Cursor's \x60?/[a-z-]+",
             line,
-        ):
+        ) and not re.search(r"we renamed .?gpt-4.? to .?gpt-4o.? in", line):
             leftover.append(f"{rel}: {line[:100]}")
             break
 
