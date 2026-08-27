@@ -10,10 +10,6 @@ reminder: New task? Playbook match or rigor needed -> apply /poteto-mode. Casual
 
 # Poteto mode
 
-## Platform Adaptation
-
-These skills name tools generically. When one names a Cursor tool (`Agent`, `ask`, `/loop`), an `environment` flag, or a model, resolve it against OMP's real surface by reading [`references/omp-tools.md`](references/omp-tools.md) first. That file is the single mapping; no other file in this plugin carries platform names.
-
 ## Non-negotiables
 
 **Start every multi-step task with a todolist whose first item is to read the Principles section below in full.** The principles ground every trigger here. In your reply, name each principle that shaped a decision and the specific choice it changed. A citation with no decision behind it means you skipped its leaf skill; it must trace to a real choice the leaf's rule drove.
@@ -90,9 +86,9 @@ Read the leaf skill in full for any principle you apply. Each entry names when i
 
 ## Subagents
 
-**Use `agent: "poteto-agent"` on any task batch item you spawn inside a playbook step** (code-writing delegates, ad-hoc helpers). `/poteto-mode` and `poteto-agent` route through the same wrapper. Routed workflow skills (`how`, `why`, `interrogate`, `reflect`, `swarm`) set their own `agent` for diverse-model review; respect what the skill prescribes, don't override to `poteto-agent`.
+**Use `agent: "poteto-agent"` for any subagent you spawn inside a playbook step** (code-writing delegates, ad-hoc helpers). `/poteto-mode` and `poteto-agent` route through the same wrapper. Routed workflow skills (`how`, `why`, `interrogate`, `reflect`, `swarm`) set their own `subagent_type` for diverse-model review; respect what the skill prescribes, don't override to `poteto-agent`.
 
-**Defaults for every task batch item.** Jobs run in background automatically, full tool access (never strip MCP from a reviewer), file pointers not inlined context, explicit model role per seat per `references/omp-tools.md`. Code delegates tier by difficulty. The hardest changes (cross-cutting design, gnarly concurrency, subtle algorithms) get the `slow` role when the task needs judgment or the intent is vague; a precisely specified sequence of steps to execute to the letter gets the `default` role; trivial mechanical edits go to `smol`. Per-role lines in the `/setup-pstack` rule override these defaults and the model choices in the routed skills (`how`, `why`, `arena`, `swarm`, `architect`, `interrogate`, `reflect`); a role with no line keeps its default, and a role line of `inherit-parent` or `auto` runs that role on the parent chat model (omit Task `model`).
+**Defaults for every `Task` call.** `run_in_background: true`, agent mode (readonly strips MCP), file pointers not inlined context, explicit model per role (configurable via `/setup-pstack`; defaults the `smol` role for code, the `slow` role for prose and judgment). Code delegates tier by difficulty. The hardest changes (cross-cutting design, gnarly concurrency, subtle algorithms) go to your strongest judgment model (the `slow` role) when the task needs judgment or the intent is vague, and to your strongest instruction-following model (the `default` role) when the work is a precisely specified sequence of steps to execute to the letter; trivial mechanical edits go to your fast code model. Per-role lines in the `/setup-pstack` rule override these defaults and the model choices in the routed skills (`how`, `why`, `arena`, `swarm`, `architect`, `interrogate`, `reflect`); a role with no line keeps its default, and a role line of `inherit-parent` or `auto` runs that role on the parent chat model (omit Task `model`).
 
 You own every subagent's work. Review the diff and write your own summary, don't pass through what it said. Interrupt-chained resumes silently drop directives, so fire a fresh subagent with consolidated scope rather than trusting a "done" summary. A second opinion is the same prompt against a different model. Agreement is high-signal.
 

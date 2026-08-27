@@ -33,18 +33,19 @@ Write one clear paragraph. Reviewers challenge whether the work achieves the int
 
 ## Step 3, Spawn Reviewers
 
-Launch all reviewers in a single `tasks[]` batch. Use the `interrogate reviewers` list from the user's pstack model config when present, one reviewer per entry, extending or shrinking the Reviewer A/B/C/D labels below to the configured entry count; otherwise use the table defaults.
+Launch all reviewers in a single message using one `tasks[]` batch. Use the `interrogate reviewers` list from the user's pstack model config when present, one reviewer per entry, extending or shrinking the Reviewer A/B/C/D labels below to the configured entry count; otherwise use the table defaults.
 
 | Subagent | Default model |
 |----------|---------------|
-| Reviewer A | `slow` role |
-| Reviewer B | `slow` role |
-| Reviewer C | `slow` role |
-| Reviewer D | `advisor` role |
+| Reviewer A | the `slow` role |
+| Reviewer B | the `default` role |
+| Reviewer C | the `smol` role |
+| Reviewer D | the `slow` role |
 
 For each reviewer:
-- `agent`: `scout` (read-only)
-- model role: `slow`, or the configured per-seat override
+- `agent`: `scout` (read-only) or `task`
+- `model`: the configured `interrogate reviewers` entry, or the table default with no configured line
+- `readonly`: `true`
 
 If a model slug is rejected as unresolvable when you try to spawn the subagent, check the valid slugs in the task tool's error message, pick the closest equivalent (prefer the highest-reasoning tier of the same family), spawn with the valid slug, and open a separate PR to update the configured value or default table. Do not block the review on the slug issue. If the configured value is `inherit-parent` or `auto`, omit `model` instead; never treat those aliases as broken slugs or enter this fallback for them.
 
