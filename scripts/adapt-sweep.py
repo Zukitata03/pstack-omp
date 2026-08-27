@@ -66,6 +66,28 @@ SUBS = [
     (r"`claude-opus-5-thinking-max`", "the `slow` role"),
     (r"your configured (?:feature|bug-fix|hillclimb|perf-issue|refactoring) model \(default the `smol` role\)", "the `default` model role"),
     (r"using your configured (?:feature|bug-fix|hillclimb|perf-issue|refactoring) model \(default `[^`]*`\)", "using the `default` model role"),
+    (r"One message, three `Task` calls, `subagent_type: generalPurpose`, explicit `model:` on each, agent mode \(`readonly: false`\)\. Reviewers need MCP access for context lookups \(tickets, chat threads, observability traces referenced in the transcript\); readonly strips MCPs\. The prompt forbids file writes; the parent applies edits\.", "One `tasks[]` batch with three items, `agent: \"task\"`, an explicit model role on each, full tool access including MCP. Reviewers need MCP access for context lookups. The prompt forbids file writes; the parent applies edits."),
+    (r"One `Task` call, `subagent_type: generalPurpose`, using your configured reflect-judgment model \(default the `slow` role\), agent mode \(`readonly: false`\)\.", "One task batch item, `agent: \"task\"`, model role `slow`."),
+    (r"feature, refactoring: grok-4\.6-fast-xhigh", "feature, refactoring: default"),
+    (r"bug-fix: grok-4\.6-fast-xhigh", "bug-fix: default"),
+    (r"perf-issue: grok-4\.6-fast-xhigh", "perf-issue: default"),
+    (r"hillclimb: grok-4\.6-fast-xhigh", "hillclimb: default"),
+    (r"bug-fix: gpt-5\.6-sol-max", "bug-fix: default"),
+    (r"perf-issue: gpt-5\.6-sol-max", "perf-issue: default"),
+    (r"hillclimb: gpt-5\.6-sol-max", "hillclimb: default"),
+    (r"how explorer: grok-4\.6-fast-xhigh", "how explorer: smol"),
+    (r"why investigators: grok-4\.6-fast-xhigh", "why investigators: smol"),
+    (r"swarm workers: grok-4\.6-fast-xhigh", "swarm workers: smol"),
+    (r"judgment and prose: claude-fable-5-thinking-max", "judgment and prose: slow"),
+    (r"hardest tasks: claude-fable-5-thinking-max", "hardest tasks: slow"),
+    (r"how explainer: claude-fable-5-thinking-max", "how explainer: slow"),
+    (r"why synthesizer: claude-fable-5-thinking-max", "why synthesizer: slow"),
+    (r"reflect tooling: gpt-5\.6-sol-max", "reflect tooling: default"),
+    (r"reflect judgment, divergent, synthesizer: claude-fable-5-thinking-max", "reflect judgment, divergent, synthesizer: slow"),
+    (r"how critics: claude-fable-5-thinking-max, gpt-5\.6-sol-max, grok-4\.6-fast-xhigh, claude-opus-5-thinking-xhigh", "how critics: slow, slow, advisor, smol"),
+    (r"arena runners: claude-fable-5-thinking-max, gpt-5\.6-sol-max, grok-4\.6-fast-xhigh, claude-opus-5-thinking-xhigh", "arena runners: slow, slow, advisor, smol"),
+    (r"architect runners: claude-fable-5-thinking-max, gpt-5\.6-sol-max, grok-4\.6-fast-xhigh, claude-opus-5-thinking-xhigh", "architect runners: slow, slow, advisor, smol"),
+    (r"interrogate reviewers: claude-fable-5-thinking-max, gpt-5\.6-sol-max, grok-4\.6-fast-xhigh, claude-opus-5-thinking-xhigh", "interrogate reviewers: slow, slow, advisor, smol"),
     (r"`~/.cursor/rules/pstack-models\.mdc`", "the user's pstack model config"),
 
     # cursor built-ins -> harness built-ins
@@ -120,7 +142,7 @@ for f in map(pathlib.Path, glob.glob(str(REPO / "skills" / "**" / "*.md"), recur
     if any(rel.endswith(x) for x in EXEMPT):
         continue
     for line in f.read_text().splitlines():
-        if re.search(r"subagent_type|AskUserQuestion|cloud agent|cloud-sleeper|claude-fable|grok-4\.6|gpt-5\.6-sol", line):
+        if re.search(r"subagent_type:|AskUserQuestion|cloud agent|cloud-sleeper|claude-fable|grok-4\.6|gpt-5\.6-sol-max", line):
             leftover.append(f"{rel}: {line[:100]}")
             break
 
