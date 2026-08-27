@@ -88,6 +88,7 @@ SUBS = [
     (r"arena runners: claude-fable-5-thinking-max, gpt-5\.6-sol-max, grok-4\.6-fast-xhigh, claude-opus-5-thinking-xhigh", "arena runners: slow, slow, advisor, smol"),
     (r"architect runners: claude-fable-5-thinking-max, gpt-5\.6-sol-max, grok-4\.6-fast-xhigh, claude-opus-5-thinking-xhigh", "architect runners: slow, slow, advisor, smol"),
     (r"interrogate reviewers: claude-fable-5-thinking-max, gpt-5\.6-sol-max, grok-4\.6-fast-xhigh, claude-opus-5-thinking-xhigh", "interrogate reviewers: slow, slow, advisor, smol"),
+    (r"arena cross-judge pool: claude-fable-5-thinking-max, gpt-5\.6-sol-max, grok-4\.6-fast-xhigh, claude-opus-5-thinking-xhigh", "arena cross-judge pool: advisor, smol"),
     (r"`~/.cursor/rules/pstack-models\.mdc`", "the user's pstack model config"),
 
     # cursor built-ins -> harness built-ins
