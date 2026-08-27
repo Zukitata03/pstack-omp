@@ -143,7 +143,15 @@ for f in map(pathlib.Path, glob.glob(str(REPO / "skills" / "**" / "*.md"), recur
     if any(rel.endswith(x) for x in EXEMPT):
         continue
     for line in f.read_text().splitlines():
-        if re.search(r"subagent_type:|AskUserQuestion|cloud agent|cloud-sleeper|claude-fable|grok-4\.6|gpt-5\.6-sol-max", line):
+        # Shape-based guard: ANY model slug or Cursor-era tool name is banned.
+        # A fixed list would silently pass the next new slug Lauren ships.
+        if re.search(
+            r"subagent_type:|AskUserQuestion|AskQuestion|run_in_background|"
+            r"cloud agent|cloud-sleeper|environment: \"cloud\"|cloud_base_branch|"
+            r"\b(?:claude|grok|gpt|gemini|opus|sonnet|haiku|fable)-[a-z0-9.-]+\b|"
+            r"gpt-[0-9]|claude-opus|claude-sonnet|claude-haiku|claude-fable|grok-[0-9]",
+            line,
+        ):
             leftover.append(f"{rel}: {line[:100]}")
             break
 
