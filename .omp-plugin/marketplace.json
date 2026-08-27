@@ -1,0 +1,16 @@
+{
+  "name": "pstack-omp",
+  "owner": {
+    "name": "zukitata03"
+  },
+  "metadata": {
+    "description": "pstack workflows adapted native to oh-my-pi (OMP). No benny, no cloud agents; models resolve through OMP modelRoles."
+  },
+  "plugins": [
+    {
+      "name": "pstack-omp",
+      "description": "OMP-native pstack. Rigorous agent workflows parallelized with confidence.",
+      "source": "./"
+    }
+  ]
+}
