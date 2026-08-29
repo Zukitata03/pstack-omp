@@ -98,8 +98,8 @@ SUBS = [
     (r"`inbox/` holds completion pointers\. `gates\.md` parks human gates \(question, options, default on no answer\) so a completion flood cannot wipe AskQuestion state\.",
      "`inbox/` holds completion pointers. `gates.md` parks human gates (question, options, default on no answer) so a completion flood cannot wipe ask state."),
     (r"Prefer AskQuestion over free text\.", "Prefer `ask` over free text."),
-    (r"^name: Poteto Mode$", "name: poteto-mode"),
-    (r"^name: Make Bot UI$", "name: make-bot-ui"),
+    (r"(?m)^name: Poteto Mode$", "name: poteto-mode"),
+    (r"(?m)^name: Make Bot UI$", "name: make-bot-ui"),
 
     (r"`~/.cursor/rules/pstack-models\.mdc`", "the user's pstack model config"),
 
