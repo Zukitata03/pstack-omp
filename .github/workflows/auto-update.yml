@@ -27,7 +27,10 @@ jobs:
           git fetch upstream main --depth 1
 
       - name: Run the lever
-        run: bash scripts/update.sh
+        run: |
+          git config user.name "pstack-omp-bot"
+          git config user.email "pstack-omp-bot@users.noreply.github.com"
+          bash scripts/update.sh
 
       - name: Push if the lever produced a commit
         run: |
