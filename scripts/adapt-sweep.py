@@ -119,6 +119,7 @@ SUBS = [
      "`inbox/` holds completion pointers. `gates.md` parks human gates (question, options, default on no answer) so a completion flood cannot wipe ask state."),
     (r"Prefer AskQuestion over free text\.", "Prefer `ask` over free text."),
     (r"(?m)^name: Poteto Mode$", "name: poteto-mode"),
+    (r'Ten lanes on `grok-4\.6-fast-xhigh` at the PR head', 'Ten lanes on the `smol` role at the PR head'),
     (r"(?m)^name: Make Bot UI$", "name: make-bot-ui"),
 
     (r"`~/.cursor/rules/pstack-models\.mdc`", "the user's pstack model config"),
@@ -149,6 +150,9 @@ EXEMPT = {"references/omp-tools.md"}
 warned = set()
 changed = 0
 for f in map(pathlib.Path, glob.glob(str(REPO / "skills" / "**" / "*.md"), recursive=True)
+             + glob.glob(str(REPO / "skills" / "**" / "*.mjs"), recursive=True)
+             + glob.glob(str(REPO / "skills" / "**" / "*.ts"), recursive=True)
+             + glob.glob(str(REPO / "skills" / "**" / "*.sh"), recursive=True)
              + glob.glob(str(REPO / "docs" / "**" / "*.md"), recursive=True)
              + [str(REPO / "README.md")]):
     rel = f.relative_to(REPO).as_posix()
@@ -170,6 +174,9 @@ print(f"adapt-sweep: {changed} files adjusted")
 
 leftover = []
 for f in map(pathlib.Path, glob.glob(str(REPO / "skills" / "**" / "*.md"), recursive=True)
+             + glob.glob(str(REPO / "skills" / "**" / "*.mjs"), recursive=True)
+             + glob.glob(str(REPO / "skills" / "**" / "*.ts"), recursive=True)
+             + glob.glob(str(REPO / "skills" / "**" / "*.sh"), recursive=True)
              + glob.glob(str(REPO / "docs" / "**" / "*.md"), recursive=True)):
     rel = f.relative_to(REPO).as_posix()
     if any(rel.endswith(x) for x in EXEMPT):
