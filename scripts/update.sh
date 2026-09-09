@@ -38,6 +38,15 @@ man["repository"] = "https://github.com/zukitata03/pstack-omp"
 omp_dir = work / ".omp-plugin"
 omp_dir.mkdir(exist_ok=True)
 (omp_dir / "plugin.json").write_text(json.dumps(man, indent=2) + "\n")
+
+# Keep the catalog's pinned version in lockstep with the plugin manifest.
+cat_path = omp_dir / "marketplace.json"
+if cat_path.exists():
+    cat = json.loads(cat_path.read_text())
+    for entry in cat.get("plugins", []):
+        if entry.get("name") == man["name"]:
+            entry["version"] = man["version"]
+    cat_path.write_text(json.dumps(cat, indent=2) + "\n")
 print("manifest:", man["version"])
 PYEOF
 
