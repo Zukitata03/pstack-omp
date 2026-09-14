@@ -29,7 +29,9 @@ FORK_OWNED = ["skills/setup-pstack/SKILL.md"]
 for rel in FORK_OWNED:
     cur = work / rel
     if cur.exists():
-        (work / (rel + ".fork-owned")).write_bytes(cur.read_bytes())
+        sidecar = work / ".fork-owned" / rel
+        sidecar.parent.mkdir(parents=True, exist_ok=True)
+        sidecar.write_bytes(cur.read_bytes())
 
 for d in ["skills", "agents", "docs"]:
     shutil.rmtree(work / d, ignore_errors=True)
@@ -37,7 +39,7 @@ for d in ["skills", "agents", "docs"]:
 # automations/ is deliberately dropped: no benny in this fork
 
 for rel in FORK_OWNED:
-    saved = work / (rel + ".fork-owned")
+    saved = work / ".fork-owned" / rel
     if saved.exists():
         (work / rel).write_bytes(saved.read_bytes())
         saved.unlink()
