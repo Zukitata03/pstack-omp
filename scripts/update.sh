@@ -53,6 +53,26 @@ PYEOF
 # 4. Reapply the adaptation sweep (same transforms, kept in one place)
 python3 "$repo/scripts/adapt-sweep.py"
 
+# 4b. Notice (not failure) when a fork-owned skill changed upstream.
+python3 - "$repo" "upstream/$ref" <<'NOTICE_EOF'
+import subprocess, sys, pathlib
+
+repo, ref = sys.argv[1], sys.argv[2]
+FORK_OWNED = {
+    "setup-pstack/SKILL.md": "rewritten for OMP modelRoles; port budget-ask changes manually",
+}
+changed = []
+for rel, note in FORK_OWNED.items():
+    up = subprocess.run(
+        ["git", "show", f"{ref}:pstack/{rel}"], cwd=repo, capture_output=True
+    ).stdout
+    ours = (pathlib.Path(repo) / "skills" / rel).read_bytes()
+    if up != ours:
+        changed.append((rel, note))
+for rel, note in changed:
+    print(f"NOTICE: upstream changed fork-owned {rel} ({note})")
+NOTICE_EOF
+
 # 5. Validate the preset chain before anything ships
 "$repo/scripts/validate-preset.sh"
 
