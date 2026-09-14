@@ -1,64 +1,66 @@
 ---
 name: setup-pstack
-description: Configure which models pstack uses per role. Detects your available models and writes an always-applied rule that overrides the skill defaults. Use for /setup-pstack, "configure pstack models", or changing pstack's model choices.
+description: Configure which models pstack uses per role. Validates OMP modelRoles and writes an always-applied rule mapping each pstack seat to an OMP role. Use for /setup-pstack, "configure pstack models", "pstack budget", or changing pstack's model choices.
 ---
 
 # Setup pstack
 
-Write the user's pstack model config, an always-applied rule that sets pstack's model per role.
+pstack-omp names no models. Every skill names a seat, and OMP's `modelRoles` resolves the seat to a model. This skill validates that chain and writes an override layer for the seats where the default mapping is wrong for you.
 
 ## Steps
 
-### 1. Detect available models
+### 1. Read the live role registry
 
-Enumerate the model slugs you can pass to a `Task` subagent in this session. That is the dependable source. If Cursor also exposes a models API or CLI that lists the user's entitled models, prefer it for completeness. If you cannot detect any, ask the user to paste the slugs they have access to. Never write a real slug you have not confirmed is available. The aliases `inherit-parent` and `auto` are always valid even though they are not detected slugs.
+Read `~/.omp/agent/config.yml` and take the `modelRoles:` block as the source of truth. The stock roles are `default`, `smol`, `slow`, `plan`, `advisor`, `task`, `vision`, `designer`. Show the user each role with its model. If a role the mapping needs is absent, say so and stop; do not invent a model for it.
 
 ### 2. Load current state
 
-The default role-to-model mapping is the rule shape shown in step 5 below. If the user's pstack model config already exists, read it and treat its values as the current choices. Otherwise start from those defaults.
+If the user's pstack model config already exists, read it and treat its values as the current choices. Otherwise start from the default seat-to-role mapping in this repo's `presets/omp-native.json`.
 
-### 3. Map and confirm
+### 3. Budget, map, and confirm
 
-Show every role with its current model, marking any real slug not in the detected set as needing a choice. Ask whether to accept as-is or change specific roles, offering the detected models plus `inherit-parent` and `auto` (both mean: this role runs on the parent chat model, which is how Auto users stay on Auto) as the options. Prefer `ask` over free text. For panel roles (arena runners, architect runners, interrogate reviewers) the value is a list, and one subagent runs per entry, alias entries included, so the list length sets the count. `arena cross-judge pool` is also a list, but Arena selects one value from it whose model family differs from the parent's when possible. `swarm workers` is the default model for every worker unless a race or comparison assigns another model per arm.
+**(a) Ask for a budget.** Prefer `ask` over free text. Offer these four options with these exact labels, and name the current budget when the rule records one.
+
+- `unlimited — keep as configured`
+- `large — prefer the strongest role per seat`
+- `medium — keep the default mapping`
+- `small — prefer the cheapest role per seat`
+
+**(b) Apply it.** Build the working table from the preset defaults, and on a re-run keep any seat you changed by role or alias. `unlimited` leaves the table as configured in `modelRoles`. `large` moves every judgment or panel seat up one tier (`smol` to `default`, `default` or `advisor` to `slow`). `medium` restores the preset mapping. `small` moves every seat down one tier (`slow` to `default`, `default` to `smol`), keeping `advisor` seats on `advisor` because a second opinion is the point of the seat. A seat whose adjusted role is absent from `modelRoles` stays where it was; never invent a role.
+
+**(c) Show the seats and confirm.** Show every seat with its role and the model that role resolves to. Ask whether to accept as-is or change specific seats, offering the live roles as options. Prefer `ask` over free text. For panel seats (arena runners, architect runners, interrogate reviewers) the value is a list of roles; one subagent runs per entry, so list length sets panel size. OMP caps concurrent task jobs, so panels beyond that queue.
 
 ### 4. Validate
 
-Every real slug written must be in the detected set. `inherit-parent` and `auto` always pass. If a chosen real slug is not available, stop and ask again.
+Every seat must name a role that exists in `modelRoles`. A seat naming a missing role breaks every delegation that reads it. Validate before writing, not after.
 
 ### 5. Write the rule
 
-Write the user's pstack model config with `alwaysApply: true` and one line per role, using the same labels poteto-mode uses. Overwrite the whole file so re-runs stay idempotent. Shape:
+Overwrite the user's pstack model config with `alwaysApply: true`, a `# budget` line with the chosen label, and one line per seat. Idempotent on re-run. Shape:
 
-```
+```markdown
 ---
-description: pstack per-role model choices (overrides skill defaults)
 alwaysApply: true
 ---
-# pstack model configuration. One line per role. Delete a line to fall back to the skill default.
-# `inherit-parent` or `auto` as a value: the role runs on the parent chat model (omit Task `model`). Alias entries in a panel list still count toward its fan-out.
-feature, refactoring: default
-bug-fix: default
-perf-issue: default
-hillclimb: default
-judgment and prose: slow
-hardest tasks: slow
-how explorer: smol
-how explainer: slow
-why investigators: smol
-why synthesizer: slow
+# pstack seat configuration
+# budget: unlimited (keep as configured)
+
+feature, refactoring, bug-fix, perf-issue, hillclimb: default
+judgment and prose, hardest tasks: slow
+how explorer, why investigators, swarm workers: smol
+how explainer, why synthesizer, reflect judgment: slow
 reflect tooling: default
-reflect judgment, divergent, synthesizer: slow
-arena runners: slow, slow, advisor, smol
+how critics: slow, advisor
+arena runners: slow, advisor
 arena cross-judge pool: advisor, smol
-swarm workers: smol
-architect runners: slow, slow, advisor, smol
-interrogate reviewers: slow, slow, advisor, smol
+architect runners: slow, advisor
+interrogate reviewers: slow, advisor
 ```
 
-### 6. Confirm
+### 6. Wire it in
 
-Tell the user the rule was written and that it applies to new sessions. Re-running this skill updates it.
+OMP reads its config from `~/.omp/agent/config.yml`. The pstack seat file is read by the skills at dispatch time; nothing to include. If the user wants a different model under a role, the edit belongs in `modelRoles`, not here.
 
-### 7. Offer a verification skill (optional)
+### 7. Confirm
 
-Check whether the project has a way to drive the real app for proof (a `verify-*` skill, or an existing harness). If not, offer once: "want a project-local verification skill, so agents can drive the app the way a user does and prove changes work? I can generate one with /create-verification-skill." On yes, invoke `/create-verification-skill` (resolves wherever pstack is installed: workspace, user, or plugin). On no, move on without pushing.
+Print the final seat to role to model chain in one table. Done.
