@@ -147,6 +147,12 @@ SUBS = [
 
 EXEMPT = {"references/omp-tools.md"}
 
+# Fork-owned skills: rewritten wholesale for OMP, not regex-adapted. The sweep
+# does not rewrite or guard them; update.sh reports upstream drift as a notice.
+FORK_OWNED = {
+    "setup-pstack/SKILL.md": "rewritten for OMP modelRoles; port budget-ask changes manually",
+}
+
 warned = set()
 changed = 0
 for f in map(pathlib.Path, glob.glob(str(REPO / "skills" / "**" / "*.md"), recursive=True)
@@ -156,7 +162,7 @@ for f in map(pathlib.Path, glob.glob(str(REPO / "skills" / "**" / "*.md"), recur
              + glob.glob(str(REPO / "docs" / "**" / "*.md"), recursive=True)
              + [str(REPO / "README.md")]):
     rel = f.relative_to(REPO).as_posix()
-    if any(rel.endswith(x) for x in EXEMPT):
+    if any(rel.endswith(x) for x in EXEMPT) or rel in FORK_OWNED:
         continue
     t = f.read_text()
     orig = t
@@ -179,7 +185,7 @@ for f in map(pathlib.Path, glob.glob(str(REPO / "skills" / "**" / "*.md"), recur
              + glob.glob(str(REPO / "skills" / "**" / "*.sh"), recursive=True)
              + glob.glob(str(REPO / "docs" / "**" / "*.md"), recursive=True)):
     rel = f.relative_to(REPO).as_posix()
-    if any(rel.endswith(x) for x in EXEMPT):
+    if any(rel.endswith(x) for x in EXEMPT) or rel in FORK_OWNED:
         continue
     for line in f.read_text().splitlines():
         # Shape-based guard: ANY model slug or Cursor-era tool name is banned.
