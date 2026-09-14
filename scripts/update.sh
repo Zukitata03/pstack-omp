@@ -21,12 +21,26 @@ subprocess.run(["git", "cat-file", "-e", f"{ref}:pstack"], cwd=repo, check=True)
 subprocess.run(f"git archive {ref} pstack | tar -x -C {tmp}", cwd=repo, shell=True, check=True)
 src = pathlib.Path(tmp, "pstack")
 
-# 2. Reset the working tree's content dirs to upstream, preserving our extras
+# 2. Reset the working tree's content dirs to upstream, then restore fork-owned
+# files whose rewrites cannot survive a wholesale re-import.
 work = pathlib.Path(repo)
+
+FORK_OWNED = ["skills/setup-pstack/SKILL.md"]
+for rel in FORK_OWNED:
+    cur = work / rel
+    if cur.exists():
+        (work / (rel + ".fork-owned")).write_bytes(cur.read_bytes())
+
 for d in ["skills", "agents", "docs"]:
     shutil.rmtree(work / d, ignore_errors=True)
     shutil.copytree(src / d, work / d)
 # automations/ is deliberately dropped: no benny in this fork
+
+for rel in FORK_OWNED:
+    saved = work / (rel + ".fork-owned")
+    if saved.exists():
+        (work / rel).write_bytes(saved.read_bytes())
+        saved.unlink()
 
 # 3. Base manifest from upstream, identity fields rewritten
 man = json.loads((src / ".cursor-plugin" / "plugin.json").read_text())
