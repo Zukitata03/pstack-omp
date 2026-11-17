@@ -1,0 +1,10 @@
+{
+  "commit": "3fa33bb0f927bea2ccacd48a3cfda95145fb6bae",
+  "tree": "71d8e1d1d718e2149dc43b2535618064f29cba6b",
+  "version": "0.15.43",
+  "forkRevision": 1,
+  "claudeAdapterReviewed": {
+    "commit": "3fa33bb0f927bea2ccacd48a3cfda95145fb6bae",
+    "blob": "0f12039b22700373ae349d96a574b474d95c2429"
+  }
+}

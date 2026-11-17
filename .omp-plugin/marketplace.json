@@ -4,14 +4,19 @@
     "name": "zukitata03"
   },
   "metadata": {
-    "description": "pstack workflows adapted native to oh-my-pi (OMP). No benny automation pack; models resolve through OMP modelRoles."
+    "description": "pstack by Lauren Tan (poteto), open-sourced by Cursor in cursor/plugins, built to run natively in oh-my-pi (OMP)."
   },
   "plugins": [
     {
       "name": "pstack-omp",
-      "description": "OMP-native pstack. Rigorous agent workflows parallelized with confidence.",
+      "description": "if you want to go fast, go deep first. pstack helps you write less, but higher quality code. rigorous agent workflows you can parallelize with confidence. OMP build of Lauren Tan's pstack from cursor/plugins.",
       "source": "./",
-      "version": "0.15.2-omp1"
+      "version": "0.15.43-omp.1",
+      "author": {
+        "name": "Lauren Tan"
+      },
+      "homepage": "https://github.com/Zukitata03/pstack-omp",
+      "license": "MIT"
     }
   ]
 }

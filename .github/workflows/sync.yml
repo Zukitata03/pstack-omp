@@ -1,0 +1,76 @@
+name: sync upstream pstack
+
+on:
+  schedule:
+    # Daily ~03:20 UTC, off the hour to dodge scheduler contention. A run with no upstream pstack change commits nothing.
+    - cron: "20 3 * * *"
+  workflow_dispatch: {}
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: sync
+  cancel-in-progress: false
+
+jobs:
+  # A push must leave the generated tree equal to a fresh build of upstream.lock.json plus overlay/.
+  check:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - run: node scripts/upstream.mjs check
+
+  # Fails only when the build cannot run. Adapter gaps ship anyway and land in one open issue.
+  sync:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Pin upstream, build, report drift
+        run: node scripts/upstream.mjs sync
+
+      - name: Commit and push
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "no change"
+            exit 0
+          fi
+          version=$(node -p 'require("./upstream.lock.json").version')
+          commit=$(node -p 'require("./upstream.lock.json").commit.slice(0, 7)')
+          git -c user.name=pstack-omp-bot -c user.email=pstack-omp-bot@users.noreply.github.com \
+            commit -qm "sync: cursor/plugins pstack ${version} @ ${commit}"
+          git push origin HEAD:master
+          git log -1 --oneline
+
+      - name: Open, update, or close the drift issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="OMP adapter drift"
+          number=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ -f .cache/drift.md ]; then
+            cat .cache/drift.md >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning title=$title::upstream pstack changed something the OMP adapter does not cover yet"
+            if [ -n "$number" ]; then
+              gh issue edit "$number" --body-file .cache/drift.md
+            else
+              gh issue create --title "$title" --body-file .cache/drift.md
+            fi
+          elif [ -n "$number" ]; then
+            gh issue close "$number" --comment "The OMP adapter covers upstream again."
+          fi

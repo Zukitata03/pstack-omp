@@ -6,51 +6,18 @@ disable-model-invocation: true
 
 # How
 
-Explore the codebase to answer "how does X work?" questions. Produce architectural explanations at the level of a senior engineer onboarding onto a subsystem, enough to build a working mental model, not so much that it reads like annotated source code.
+In OMP, read `skill://pstack-omp` once per session before you follow this file. It maps the Cursor names in pstack to OMP.
 
-## Step 1. Assess Complexity
+Explore the codebase to answer "how does X work?" questions.
 
 If the scope is ambiguous, state your interpretation and explore. The user can redirect.
 
-- **Simple** (a single module, a small utility, a narrow question such as "how does function X work"): no explorers. One explainer explores and explains in a single pass. Go to Step 2b.
-- **Complex** (a subsystem spanning multiple files or services, a cross-cutting feature, a full architectural overview): spawn parallel explorers first, then hand off to the explainer. Go to Step 2a.
+## 1. Explain
 
-When in doubt, take the simple path.
+Spawn one Task subagent with `subagent_type: generalPurpose` and `readonly: true` that explores and explains in one pass. Give it the user's question and this brief:
 
-## Step 2a. Explore (complex questions only)
+> You are writing an architectural explanation for a senior engineer. Explore the codebase and write an explanation that a senior engineer unfamiliar with this area could read and walk away with a solid mental model. They should understand the architecture well enough to start working in it confidently. You have read-only access to the codebase.
 
-Decompose the question into 2 to 4 exploration angles, each a distinct slice of the subsystem. Spawn all explorers in a single message:
+## 2. Present
 
-- `agent`: `scout` (read-only) or `task`
-- `model`: your configured how-explorer model (default the `smol` role)
-- `readonly`: `true`
-
-Each explorer gets the prompt in `references/explorer-prompt.md` with its angle filled in. Then go to Step 3.
-
-## Step 2b. Direct Explain (simple questions)
-
-Spawn one Task subagent that explores and explains in one pass:
-
-- `agent`: `scout` (read-only) or `task`
-- `model`: your configured how-explainer model (default the `slow` role)
-- `readonly`: `true`
-
-Build its prompt from `references/explainer-prompt.md` without the explorer-findings section. Go to Step 4.
-
-## Step 3. Synthesize (complex questions only)
-
-Once all explorers have returned, spawn one Task subagent to synthesize their findings into one explanation:
-
-- `agent`: `scout` (read-only) or `task`
-- `model`: your configured how-explainer model (default the `slow` role)
-- `readonly`: `true`
-
-Build its prompt from `references/explainer-prompt.md` with every explorer's findings filled in.
-
-## Step 4. Present
-
-Present the explainer's output to the user. Light edits for clarity or context from the conversation are fine. Do not substantially rewrite it.
-
-## Output Format
-
-The explanation uses the sections defined in `references/explainer-prompt.md`, dropping any that do not apply: Overview, Key Concepts, How It Works, Where Things Live, Gotchas.
+Present the subagent's output. Light edits for clarity or context from the conversation are fine. Do not substantially rewrite it.
