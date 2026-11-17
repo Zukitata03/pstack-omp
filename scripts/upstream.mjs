@@ -1,15 +1,19 @@
 #!/usr/bin/env node
-// Builds pstack-omp from a pinned cursor/plugins pstack commit plus overlay/.
+// Builds pstack-omp from a pinned cursor/plugins pstack commit plus overlay/ and amendments/.
 //
-//   node scripts/upstream.mjs build        regenerate the tree from upstream.lock.json
-//   node scripts/upstream.mjs check        fail when the committed tree differs from a fresh build
-//   node scripts/upstream.mjs sync         pin upstream main if pstack changed, build, report drift
-//   node scripts/upstream.mjs drift        report adapter drift for the pinned commit
-//   node scripts/upstream.mjs ack-adapter  mark upstream's Claude Code adapter as reviewed at the pinned commit
+//   node scripts/upstream.mjs build   regenerate the tree from upstream.lock.json
+//   node scripts/upstream.mjs check   fail when the committed tree differs from a fresh build
+//   node scripts/upstream.mjs sync    pin upstream main if pstack changed, build, report drift
+//   node scripts/upstream.mjs drift   report what needs a human look at the pinned commit
+//   node scripts/upstream.mjs ack     mark every watched upstream file as reviewed at the pinned commit
 //
 // Upstream text ships verbatim. Each file that uses a Cursor name gets one line after its title that sends the
 // agent to skill://pstack-omp, the OMP adapter. Upstream does the same for Claude Code with
 // pstack/docs/harness/claude-code.md and scripts/generate-pstack-harness-trees.mjs.
+//
+// amendments/<path> is appended to the upstream file at <path>. It never matches upstream sentences, so an upstream
+// rewrite cannot drop it or break the build. drift() shows the upstream diff so a human can retire it once upstream
+// ships the same fix.
 
 import { execFileSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -21,11 +25,12 @@ const LOCK = join(ROOT, "upstream.lock.json");
 const CACHE = join(ROOT, ".cache", "cursor-plugins");
 const DRIFT = join(ROOT, ".cache", "drift.md");
 const OVERLAY = join(ROOT, "overlay");
+const AMENDMENTS = join(ROOT, "amendments");
 const UPSTREAM = "https://github.com/cursor/plugins";
 const REPO = "https://github.com/Zukitata03/pstack-omp";
 const SUBTREE = "pstack";
 const UPSTREAM_GENERATOR = "scripts/generate-pstack-harness-trees.mjs";
-const CLAUDE_ADAPTER = `${SUBTREE}/docs/harness/claude-code.md`;
+const CLAUDE_ADAPTER = "docs/harness/claude-code.md";
 const ADAPTER = "pstack-omp";
 const ADAPTER_PATH = `skills/${ADAPTER}/SKILL.md`;
 // Upstream paths that ship. automations/ (benny), assets/, and docs/harness/ stay upstream.
@@ -90,6 +95,11 @@ function walk(dir) {
 
 function file(path) {
   return { bytes: readFileSync(path), executable: (statSync(path).mode & 0o111) !== 0 };
+}
+
+// Paths under amendments/, each the pstack-relative path of the upstream file it is appended to.
+function amendmentTargets() {
+  return existsSync(AMENDMENTS) ? walk(AMENDMENTS).map((path) => posixPath(relative(AMENDMENTS, path))).sort() : [];
 }
 
 function git(...args) {
@@ -158,6 +168,13 @@ function cursorNamesIn(texts, otherSkills, termList) {
   return used;
 }
 
+function withName(body, name) {
+  const frontmatter = body.match(/^---\n([\s\S]*?)\n---\n/);
+  if (!frontmatter) return `---\nname: ${name}\n---\n\n${body}`;
+  const fields = /^name:.*$/m.test(frontmatter[1]) ? frontmatter[1].replace(/^name:.*$/m, `name: ${name}`) : `name: ${name}\n${frontmatter[1]}`;
+  return `---\n${fields}\n---\n${body.slice(frontmatter[0].length)}`;
+}
+
 function addAdapterLine(body) {
   if (/^# .*$/m.test(body)) return body.replace(/^(# .*)\n+/m, `$1\n\n${ADAPTER_LINE}\n\n`);
   const frontmatter = body.match(/^---\n[\s\S]*?\n---\n/)?.[0] ?? "";
@@ -220,7 +237,9 @@ function manifests(src, lock) {
 }
 
 function render(src, lock) {
+  // problems are mistakes in this repo and fail the build. warnings are upstream quirks the build works around.
   const problems = [];
+  const warnings = [];
   const files = new Map();
   const omitted = (path) => OMIT.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
   for (const entry of SHIP) {
@@ -245,18 +264,33 @@ function render(src, lock) {
   const termList = terms();
   for (const skill of skills) {
     const path = `skills/${skill}/SKILL.md`;
-    const body = text(files.get(path));
+    let body = text(files.get(path));
     const name = body.match(/^---\n([\s\S]*?)\n---/)?.[1].match(/^name:(.*)$/m)?.[1].trim().replace(/^(["'])(.*)\1$/, "$2");
-    // OMP runs a skill by its frontmatter name and resolves skill://<name> by it, so it must match the folder.
-    if (name !== skill) problems.push(`${path} has name ${JSON.stringify(name ?? "")}, not ${skill}`);
-    if (skill === ADAPTER) continue;
-    const docs = [...files.keys()].filter((p) => p.startsWith(`skills/${skill}/`) && p.endsWith(".md")).map((p) => text(files.get(p)));
-    if (cursorNamesIn(docs, skills.filter((s) => s !== skill), termList).size > 0) files.get(path).bytes = Buffer.from(addAdapterLine(body));
+    // OMP resolves skill://<name> and /skill:<name> by the frontmatter name, so it must equal the folder name.
+    if (name !== skill) {
+      warnings.push(`${path}: frontmatter name ${JSON.stringify(name ?? "")} set to its folder name, ${skill}`);
+      body = withName(body, skill);
+    }
+    if (skill !== ADAPTER) {
+      const docs = [...files.keys()].filter((p) => p.startsWith(`skills/${skill}/`) && p.endsWith(".md")).map((p) => text(files.get(p)));
+      if (cursorNamesIn(docs, skills.filter((s) => s !== skill), termList).size > 0) body = addAdapterLine(body);
+    }
+    files.get(path).bytes = Buffer.from(body);
   }
   for (const path of [...files.keys()].filter((p) => /^agents\/[^/]+\.md$/.test(p))) {
     let body = adaptAgent(text(files.get(path)));
     if (cursorNamesIn([body.replace(/^---\n[\s\S]*?\n---\n/, "")], skills, termList).size > 0) body = addAdapterLine(body);
     files.get(path).bytes = Buffer.from(body);
+  }
+
+  // Appended, not patched in: the fix survives any upstream rewording. A target upstream deleted skips with a warning.
+  for (const rel of amendmentTargets()) {
+    const target = files.get(rel);
+    if (!target || !existsSync(join(src, rel))) {
+      warnings.push(`amendments/${rel} not applied: this build ships no upstream pstack/${rel}`);
+      continue;
+    }
+    target.bytes = Buffer.from(`${text(target).replace(/\n*$/, "\n")}\n${readFileSync(join(AMENDMENTS, rel), "utf8").trim()}\n`);
   }
 
   // A relative link to an upstream file this build leaves out points at that file on GitHub, as upstream's generator does.
@@ -270,7 +304,7 @@ function render(src, lock) {
         const resolved = posix.join(posix.dirname(path), target).replace(/\/$/, "");
         if (has(resolved)) return link;
         if (resolved.startsWith("..") || !existsSync(join(src, resolved))) {
-          problems.push(`${path} links to ${href}, which neither this build nor upstream pstack has`);
+          warnings.push(`${path}: link to ${href} left as is; it resolves to nothing in pstack/, so it is a placeholder or leaves the plugin`);
           return link;
         }
         const kind = statSync(join(src, resolved)).isDirectory() ? "tree" : "blob";
@@ -280,7 +314,7 @@ function render(src, lock) {
   }
 
   for (const [path, entry] of manifests(src, lock)) files.set(path, entry);
-  return { files, problems };
+  return { files, problems, warnings };
 }
 
 function onDisk() {
@@ -293,7 +327,8 @@ function onDisk() {
 
 function rendered() {
   const lock = readJson(LOCK);
-  const { files, problems } = render(checkout(lock.commit), lock);
+  const { files, problems, warnings } = render(checkout(lock.commit), lock);
+  for (const warning of warnings) console.log(`WARN ${warning}`);
   for (const problem of problems) console.log(`FAIL ${problem}`);
   if (problems.length > 0) process.exit(1);
   return { files, lock };
@@ -346,8 +381,34 @@ function sync() {
   drift();
 }
 
-// Gaps that need a human edit to the adapter. They never fail the build: the skills still work, and the adapter's
-// "no row: drop it and say so" rule covers a new name until a row lands.
+// Upstream files a human reviewed at a pinned commit: the Claude Code adapter, which the OMP adapter tracks, and every
+// file an amendment is appended to.
+function watched() {
+  return [
+    {
+      path: CLAUDE_ADAPTER,
+      changed: `Port what applies to \`overlay/${ADAPTER_PATH}\`.`,
+      gone: `Find where upstream moved its Claude Code adapter.`,
+    },
+    ...amendmentTargets().map((path) => ({
+      path,
+      changed: `\`amendments/${path}\` is appended to it. If upstream now ships the same fix, delete the amendment. Otherwise check that it still reads right after the new text.`,
+      gone: `So \`amendments/${path}\` is not applied. Move it to the file that replaced this one, or delete it.`,
+    })),
+  ];
+}
+
+function blobAt(commit, path) {
+  if (!hasObject(`${commit}^{commit}`)) fetchRef(commit);
+  try {
+    return git("rev-parse", `${commit}:${SUBTREE}/${path}`);
+  } catch {
+    return null;
+  }
+}
+
+// Gaps that need a human edit. They never fail the build: the skills still work, the adapter's "no row: drop it and
+// say so" rule covers a new name until a row lands, and amendments still apply after upstream rewrites.
 function drift() {
   const lock = readJson(LOCK);
   checkout(lock.commit);
@@ -360,37 +421,40 @@ function drift() {
   for (const key of [...upstream.map(({ key }) => key), ROUTE_KEY]) {
     if (!adapter.includes(key)) items.push(`Upstream maps a new Cursor name, ${key}, and \`overlay/${ADAPTER_PATH}\` has no row for it.`);
   }
-  const blob = git("rev-parse", `${lock.commit}:${CLAUDE_ADAPTER}`);
-  const reviewed = lock.claudeAdapterReviewed;
-  if (blob !== reviewed.blob) {
-    if (!hasObject(`${reviewed.commit}^{commit}`)) fetchRef(reviewed.commit);
-    const lines = git("diff", reviewed.commit, lock.commit, "--", CLAUDE_ADAPTER).split("\n");
-    const shown = lines.slice(0, 300).join("\n");
-    const cut = lines.length > 300 ? `\n\n(${lines.length - 300} more lines: ${UPSTREAM}/compare/${reviewed.commit}...${lock.commit})` : "";
-    items.push(
-      `Upstream changed its Claude Code adapter (\`${CLAUDE_ADAPTER}\`) since ${reviewed.commit.slice(0, 7)}. ` +
-        `Port what applies to \`overlay/${ADAPTER_PATH}\`, run \`node scripts/upstream.mjs build\`, then \`node scripts/upstream.mjs ack-adapter\`.\n\n\`\`\`diff\n${shown}\n\`\`\`${cut}`,
-    );
+  const after = "Then run `node scripts/upstream.mjs build` and `node scripts/upstream.mjs ack`.";
+  for (const { path, changed, gone } of watched()) {
+    const since = lock.reviewed[path];
+    const now = blobAt(lock.commit, path);
+    if (!now) {
+      items.push(`Upstream no longer has \`${SUBTREE}/${path}\`. ${gone} ${after}`);
+    } else if (!since) {
+      items.push(`\`${SUBTREE}/${path}\` has no review baseline. Read it, then run \`node scripts/upstream.mjs ack\`.`);
+    } else if (blobAt(since, path) !== now) {
+      const lines = git("diff", since, lock.commit, "--", `${SUBTREE}/${path}`).split("\n");
+      const cut = lines.length > 300 ? `\n\n(${lines.length - 300} more lines: ${UPSTREAM}/compare/${since}...${lock.commit})` : "";
+      items.push(`Upstream changed \`${SUBTREE}/${path}\` since ${since.slice(0, 7)}. ${changed} ${after}\n\n\`\`\`diff\n${lines.slice(0, 300).join("\n")}\n\`\`\`${cut}`);
+    }
   }
   if (items.length === 0) {
     rmSync(DRIFT, { force: true });
-    console.log("adapter covers upstream");
+    console.log("adapter and amendments cover upstream");
     return;
   }
-  const report = `Upstream pstack ${lock.version} @ [${lock.commit.slice(0, 7)}](${UPSTREAM}/commit/${lock.commit}) shipped, but the OMP adapter needs a look:\n\n${items.map((item) => `- ${item}`).join("\n")}\n`;
+  const report = `Upstream pstack ${lock.version} @ [${lock.commit.slice(0, 7)}](${UPSTREAM}/commit/${lock.commit}) shipped, but needs a look:\n\n${items.map((item) => `- ${item}`).join("\n")}\n`;
   mkdirSync(dirname(DRIFT), { recursive: true });
   writeFileSync(DRIFT, report);
   console.log(`DRIFT (shipped anyway; written to ${posixPath(relative(ROOT, DRIFT))})\n${report}`);
 }
 
-function ackAdapter() {
+function ack() {
   const lock = readJson(LOCK);
   checkout(lock.commit);
-  writeJson(LOCK, { ...lock, claudeAdapterReviewed: { commit: lock.commit, blob: git("rev-parse", `${lock.commit}:${CLAUDE_ADAPTER}`) } });
-  console.log(`Claude Code adapter marked reviewed at ${lock.commit.slice(0, 7)}`);
+  const reviewed = Object.fromEntries(watched().map(({ path }) => [path, lock.commit]));
+  writeJson(LOCK, { ...lock, reviewed });
+  console.log(`reviewed at ${lock.commit.slice(0, 7)}: ${Object.keys(reviewed).join(", ")}`);
 }
 
-const verbs = { build, check, sync, drift, "ack-adapter": ackAdapter };
+const verbs = { build, check, sync, drift, ack };
 const verb = process.argv[2];
 if (!verbs[verb]) {
   console.log(`usage: node scripts/upstream.mjs <${Object.keys(verbs).join("|")}>`);

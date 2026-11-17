@@ -4,9 +4,9 @@
 
 ## Credits
 
-pstack is the work of **Lauren Tan** ([poteto](https://github.com/poteto)), open-sourced by **Cursor** in [cursor/plugins](https://github.com/cursor/plugins) under the MIT license. Every skill, playbook, principle, agent, and guide page in this repo is hers, shipped unchanged. Read her [README](https://github.com/cursor/plugins/blob/main/pstack/README.md) and [guide](./docs/guide/README.md) for what pstack is and how to use it.
+pstack is the work of **Lauren Tan** ([poteto](https://github.com/poteto)), open-sourced by **Cursor** in [cursor/plugins](https://github.com/cursor/plugins) under the MIT license. Every skill, playbook, principle, agent, and guide page in this repo is hers. Her text ships unchanged; this build only adds a one-line OMP pointer and the appended [amendments](#how-the-omp-build-works). Read her [README](https://github.com/cursor/plugins/blob/main/pstack/README.md) and [guide](./docs/guide/README.md) for what pstack is and how to use it.
 
-This repo only adds the OMP adapter, the build script, and packaging. It is a personal build, not affiliated with Cursor or the author.
+This repo only adds the OMP adapter, community fixes upstream doesn't have yet (credited where they're applied), the build script, and packaging. It is a personal build, not affiliated with Cursor or the author.
 
 ## Install
 
@@ -39,8 +39,9 @@ The skills use Cursor names: `Task`, `AskQuestion`, model slugs, `~/.cursor` pat
 - Agent frontmatter `model:` slugs become OMP role aliases (`claude-opus-*` → `@default`, `claude-fable-*` → `@slow`, other vendors → `@advisor`).
 - Relative links to upstream files this build leaves out point at GitHub instead.
 - Left out: `automations/` (benny) and `make-bot-ui`, which need Cursor Automations.
+- [`amendments/`](./amendments) holds fixes upstream doesn't have yet. `amendments/<path>` is appended to the upstream file at `<path>` as its own section that says it wins where it differs. Today that is the `no-comments` fix by Michael Ramos from [backnotprop/pstack#14](https://github.com/backnotprop/pstack/issues/14). Outside-rule comments it can't check go to `REVIEW` instead of being deleted, `MUST KILL` covers only problems the code has today, and a rejected rerun no longer fails the whole run.
 
-Upstream prose is never rewritten, so an upstream edit can't break the build. The older regex sweep failed on every reworded sentence and stalled this fork at 0.15.2 from late September.
+Upstream prose is never rewritten, and amendments never match upstream sentences, so an upstream edit can't break the build or drop a fix. Upstream quirks don't fail it either: a frontmatter `name` that differs from its folder is set to the folder name, and a placeholder link is left alone, each with a `WARN` line. The older regex sweep failed on every reworded sentence and stalled this fork at 0.15.2 from late September.
 
 ## Updates
 
@@ -48,23 +49,27 @@ Upstream prose is never rewritten, so an upstream edit can't break the build. Th
 
 1. `node scripts/upstream.mjs sync` pins upstream `main` when `pstack/` changed, rebuilds, and reports drift.
 2. The job commits and pushes any change as `sync: cursor/plugins pstack <version> @ <commit>`.
-3. If the adapter needs a look, the job opens or updates one issue, **OMP adapter drift**, and closes it once drift clears. The run stays green, and the update ships anyway.
+3. If something needs a look, the job opens or updates one issue, **pstack-omp drift**, and closes it once drift clears. The run stays green, and the update ships anyway.
 
-Drift means one of two things:
+Drift means one of these:
 
 - Upstream's harness generator added a Cursor name that the OMP adapter has no row for.
 - Upstream changed its Claude Code adapter since you last reviewed it. The issue includes the diff.
+- Upstream changed a file that an amendment is appended to. The issue includes the diff. If upstream now ships the same fix, delete the amendment.
+- Upstream deleted a file that an amendment targets. That amendment is skipped until you move or delete it.
 
-To clear it, edit the adapter, then run:
+To clear it, edit the adapter or `amendments/`, then run:
 
 ```bash
-node scripts/upstream.mjs build        # regenerate the tree
-node scripts/upstream.mjs ack-adapter  # only when the issue showed a Claude Code adapter diff
+node scripts/upstream.mjs build  # regenerate the tree
+node scripts/upstream.mjs ack    # mark the watched upstream files reviewed at the pinned commit
 ```
+
+A new amendment needs `ack` once, so drift has a baseline to diff against.
 
 On push, CI runs `node scripts/upstream.mjs check`, which fails when the committed tree differs from a fresh build. That catches hand edits to generated files.
 
-When you change `overlay/` or the build script, bump `forkRevision` in `upstream.lock.json` so `omp plugin upgrade` sees a new version (`<upstream>-omp.<forkRevision>`). The sync bumps it for you when upstream content changes without a version bump.
+When you change `overlay/`, `amendments/`, or the build script, bump `forkRevision` in `upstream.lock.json` so `omp plugin upgrade` sees a new version (`<upstream>-omp.<forkRevision>`). The sync bumps it for you when upstream content changes without a version bump.
 
 ## License
 

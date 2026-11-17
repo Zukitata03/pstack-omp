@@ -24,3 +24,12 @@ Use the caller's files or diff. Otherwise use the current diff against the base 
 4. Implement the smallest root-cause fix in scope. Remove every named workaround. If the root cause is out of scope, land the smallest in-scope fix and report the rest open. The **principle-fix-root-causes** and **principle-redesign-from-first-principles** skills guide intent only. Neither authorizes widening the fence nor fixing instances outside it. Never bolt on symptom guards.
 5. Constraint comments say `do not remove`, `do not change wording`, or `talk to X before changing`. Leave keeps about things we cannot change. Offer the cheapest in-scope type, runtime, test, or CI lint. Wait for interactive approval. Unattended and eval require caller pre-approval. If approved, encode then delete. Otherwise delete, report the constraint open, and sketch out-of-scope work.
 6. Report the deletion count, restored comments, reruns, architect sketch, fixes, encoding offers, encodings, unenforced constraints, and other open work.
+
+## Amendment: REVIEW keeps and rejected reruns
+
+This fix comes from Michael Ramos in [backnotprop/pstack#14](https://github.com/backnotprop/pstack/issues/14). Upstream does not have it yet. Where it differs from the steps above, it wins.
+
+- Comment Sicko may return `REVIEW` keeps: comments that claim a rule of a dependency, platform, vendor, or protocol that it could neither prove nor refute. Keep each one until someone checks that rule, and report it open. Delete it only with proof from that outside thing's docs or source that the rule is false or not ours.
+- Reject a `MUST KILL` that names a problem a future edit might cause instead of one the code has today.
+- If you reject the rerun too, do not fail `/no-comments`. Revert only the rejected findings, report them open, and go on with the accepted ones.
+- The final report also lists `REVIEW` keeps, each with the rule it claims.

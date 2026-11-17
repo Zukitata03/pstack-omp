@@ -61,7 +61,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          title="OMP adapter drift"
+          title="pstack-omp drift"
           number=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
           if [ -f .cache/drift.md ]; then
             cat .cache/drift.md >> "$GITHUB_STEP_SUMMARY"
