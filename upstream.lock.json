@@ -1,7 +1,7 @@
 {
-  "commit": "e58dd043600587dbaf58ba315e7f2b38373eeb43",
-  "tree": "1186430edb1d16e41d644aaf155a92a09efe06ff",
-  "version": "0.15.44",
+  "commit": "aaeb0ea3a0584995aa8f55ce44c6c5259414b896",
+  "tree": "b47cf6d63625b48fd77893233044849935cdae3d",
+  "version": "0.15.46",
   "forkRevision": 2,
   "reviewed": {
     "docs/harness/claude-code.md": "3fa33bb0f927bea2ccacd48a3cfda95145fb6bae",
