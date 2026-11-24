@@ -11,7 +11,7 @@
       "name": "pstack-omp",
       "description": "if you want to go fast, go deep first. pstack helps you write less, but higher quality code. rigorous agent workflows you can parallelize with confidence. OMP build of Lauren Tan's pstack from cursor/plugins.",
       "source": "./",
-      "version": "0.15.46-omp.2",
+      "version": "0.15.48-omp.2",
       "author": {
         "name": "Lauren Tan"
       },
